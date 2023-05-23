@@ -1,0 +1,1 @@
+Warning (10268): Verilog HDL information at pwm_rgb.sv(18): always construct contains both blocking and non-blocking assignments File: E:/FPGA_work/AGM/ETree_10KL144_V1/led_pwm/src/pwm_rgb.sv Line: 18

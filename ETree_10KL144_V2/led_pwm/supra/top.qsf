@@ -1,0 +1,2 @@
+set_global_assignment -name FAMILY "Cyclone IV E"
+set_global_assignment -name DEVICE "EP4CE10E22C8"

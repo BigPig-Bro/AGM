@@ -1,0 +1,6 @@
+set_location_assignment -to clk PIN_25
+set_location_assignment -to rst_n PIN_91
+set_location_assignment -to led PIN_7
+set_instance_assignment -name IO_STANDARD -to clk "2.5 V"
+set_instance_assignment -name IO_STANDARD -to rst_n "2.5 V"
+set_instance_assignment -name IO_STANDARD -to led "2.5 V"

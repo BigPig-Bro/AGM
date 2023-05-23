@@ -1,0 +1,564 @@
+> alta::tcl_whisper "Cmd : [alta::prog_path] [alta::prog_version]([alta::prog_subversion])\n"
+Cmd : E:/TOOL/restart/Supra-2022.11.b0-ae2d6408-win64-all/bin/af.exe 2022.11.b0(ae2d6408)
+> alta::tcl_whisper "Args : [string map {\{ \" \} \"} $tcl_cmd_args]\n"
+Args : -X "set QUARTUS_SDC true" -X "set FITTING timing_more" -X "set FITTER hybrid" -X "set EFFORT highest" -X "set HOLDX default" -X "set SKEW   basic" -X "set MODE QUARTUS" -X "set FLOW ALL" -F ./af_run.tcl
+> 
+> set_seed_rand $SEED
+> set ar_timing_derate ${TIMING_DERATE}
+> 
+> date_time
+Tue May 23 16:58:15 2023
+> if { [file exists "./${DESIGN}.pre.asf"] } {
+  alta::tcl_highlight "Using pre-ASF file ${DESIGN}.pre.asf.\n"
+  source "./${DESIGN}.pre.asf"
+}
+Using pre-ASF file top.pre.asf.
+> 
+> if { [info exists CORNER] } { set_mode -corner $CORNER; }
+> 
+> eval "load_architect ${no_route} -type ${DEVICE} 1 1 1000 1000"
+Total IO  : 498
+Total Pin : 251/33
+Top array is built.
+Loading architect libraries...
+## CPU time: 0:0:0, REAL time: 0:0:0
+## Memory Usage: 53MB (53MB)
+Loading route table...
+## CPU time: 0:0:17, REAL time: 0:0:18
+## Memory Usage: 831MB (831MB)
+> foreach ip_file $IP_FILES { read_ip $ip_file; }
+> 
+> set LOAD_DB    false
+> set LOAD_PLACE false
+> set LOAD_ROUTE false
+> if { $FLOW == "LOAD" || $FLOW == "CHECK" || $FLOW == "PROBE" } {
+  set LOAD_DB    true
+  set LOAD_PLACE true
+  set LOAD_ROUTE true
+} elseif { $FLOW == "R" || $FLOW == "ROUTE" } {
+  set LOAD_DB    true
+  set LOAD_PLACE true
+}
+> 
+> set ORIGINAL_QSF "E:/FPGA_work/AGM/ETree_10KL144_V1/led_pwm/./top.qsf"
+> set ORIGINAL_PIN "E:/FPGA_work/AGM/ETree_10KL144_V1/led_pwm/output_files/top.pin"
+> 
+> #################################################################################
+> 
+> if { $FLOW == "GEN" } {
+  if { ! [info exists CONFIG_BITS] } {
+    set CONFIG_BITS "${RESULT_DIR}/${DESIGN}.bin"
+  }
+  if { [llength $CONFIG_BITS] > 1 } {
+    if { ! [info exists BOOT_BINARY] } {
+      set BOOT_BINARY "${RESULT_DIR}/${DESIGN}_boot.bin"
+    }
+    if { ! [info exists CONFIG_ADDRESSES] } {
+      set CONFIG_ADDRESSES ""
+    }
+    generate_binary -master $BOOT_BINARY -inputs $CONFIG_BITS -address $CONFIG_ADDRESSES
+  } else {
+    set CONFIG_ROOT   [file rootname [lindex $CONFIG_BITS 0]]
+    set SLAVE_RBF     "${CONFIG_ROOT}_slave.rbf"
+    set MASTER_BINARY "${CONFIG_ROOT}_master.bin"
+    if { [file exists [lindex $CONFIG_BITS 0]] } {
+      generate_binary -slave  $SLAVE_RBF     -inputs [lindex $CONFIG_BITS 0] -reverse
+      generate_binary -master $MASTER_BINARY -inputs [lindex $CONFIG_BITS 0]
+    }
+    if { ! [info exists BOOT_BINARY] } {
+      set BOOT_BINARY $MASTER_BINARY
+    }
+  }
+  set PRG_FILE [file rootname $BOOT_BINARY].prg
+  set AS_FILE  [file rootname $BOOT_BINARY]_as.prg
+  generate_programming_file $BOOT_BINARY -erase $ERASE \
+                            -program $PROGRAM -verify $VERIFY -offset $OFFSET \
+                            -prg $PRG_FILE -as $AS_FILE
+  exit
+}
+> 
+> if { $LOAD_DB } {
+  load_db -top ${TOP_MODULE}
+  set sdc "./${DESIGN}.adc"
+  if { ! [file exists $sdc] } { set sdc "./${DESIGN}.sdc"; }
+  if { [file exists $sdc] } { read_sdc $sdc; }
+
+} elseif { $MODE == "QUARTUS" } {
+  set verilog ${DESIGN}.vo
+  set is_migrated false
+  if { ! [file exists $verilog] } {
+    set verilog "E:/FPGA_work/AGM/ETree_10KL144_V1/led_pwm/simulation/modelsim/${DESIGN}.vo"
+    set is_migrated true
+  }
+  if { ! [file exists $verilog] } {
+    error "Can not find design verilog file $verilog"
+  }
+  alta::tcl_highlight "Using design verilog file $verilog.\n"
+  set ret [read_design -top ${TOP_MODULE} -ve $VE_FILE -qsf $ORIGINAL_QSF $verilog -hierachy 1]
+  if { !$ret } { exit -1; }
+
+  set sdc "./${DESIGN}.adc"
+  if { ! [file exists $sdc] } { set sdc "./${DESIGN}.sdc"; }
+  if { ! [file exists $sdc] } {
+    alta::tcl_warn "Can not find design SDC file $sdc"
+  } else {
+    alta::tcl_highlight "Using design SDC file $sdc.\n"
+    read_sdc $sdc
+  }
+
+} elseif { $MODE == "SYNPLICITY" || $MODE == "NATIVE" } {
+  set db_gclk_assignment_level 2
+  set verilog ${DESIGN}.vqm
+  set is_migrated false
+  if { ! [file exists $verilog] } {
+    error "Can not find design verilog file $verilog"
+  }
+
+  set sdc "./${DESIGN}.adc"
+  if { ! [file exists $sdc] } { set sdc "./${DESIGN}.sdc"; }
+  alta::tcl_highlight "Using design verilog file $verilog.\n"
+  if { ! [file exists $sdc] } {
+    alta::tcl_warn "Can not find design SDC file $sdc"
+    set ret [read_design_and_pack -sdc $sdc  -top ${TOP_MODULE} $verilog]
+  } else {
+    alta::tcl_highlight "Using design SDC file $sdc.\n"
+    set ret [read_design_and_pack -top ${TOP_MODULE} $verilog]
+  }
+  if { !$ret } { exit -1; }
+
+} else {
+  error "Unsupported mode $MODE"
+}
+Using design verilog file E:/FPGA_work/AGM/ETree_10KL144_V1/led_pwm/simulation/modelsim/top.vo.
+Preparing design...
+## CPU time: 0:0:0, REAL time: 0:0:0
+## Memory Usage: 846MB (846MB)
+Pseudo pack design...
+Packing Statistics
+ Total      Logics : 409/11120 (  3%)
+ Total        LUTs : 409/11120 (  3%)
+ Total   Registers :  50/11120 (  0%)
+ Total  Block Rams :   0/   56 (  0%)
+ Total Multipliers :   0/   56 (  0%)
+ Total        PLLs :   0/    4 (  0%)
+ Total        Pins :   3/  251 (  1%)
+ Global    Signals :   2/   10 ( 20%)
+      clk~inputclkctrl_outclk (from:     clk~input_o)
+          rtl~0clkctrl_outclk (from:   rtl~0_combout)
+ Total Lonely   Datain   : 0
+ Total Lonely   Register : 0
+ Total LUT-FF   Pairs    : 50
+ Total Register Packings : 0
+ Registers with synchronous    reset : 31
+ Registers with asynchronous   reset : 0
+ Registers with sync and async reset : 0
+## CPU time: 0:0:0, REAL time: 0:0:0
+## Memory Usage: 846MB (846MB)
+Filter verilog...
+## CPU time: 0:0:0, REAL time: 0:0:0
+## Memory Usage: 846MB (846MB)
+Read DB design...
+## CPU time: 0:0:0, REAL time: 0:0:1
+## Memory Usage: 849MB (849MB)
+Process design...
+> set_instance_assignment -name ENABLE_OPEN_DRAIN -to led~output false
+> set_location_assignment -to clk PIN_25
+> set_instance_assignment -to clk -name IO_STANDARD "2.5 V"
+> set_location_assignment -to led PIN_7
+> set_instance_assignment -to led -name IO_STANDARD "2.5 V"
+> set_location_assignment -to rst_n PIN_91
+> set_instance_assignment -to rst_n -name IO_STANDARD "2.5 V"
+Info: Found GCLK net rtl~0clkctrl_outclk (2).
+Info: Found GCLK net clk~inputclkctrl_outclk (4).
+## CPU time: 0:0:0, REAL time: 0:0:0
+## Memory Usage: 850MB (850MB)
+Using design SDC file ./top.sdc.
+derive_pll_clocks -create_base_clocks
+> 
+> if { $FLOW == "PACK" } { exit }
+> 
+> if { [info exists FITTING] } {
+  if { $FITTING == "Auto" } { set FITTING auto; }
+  set_mode -fitting $FITTING
+}
+>  set pl_criticality_wratio  "5.00 5.00 5.00 1.00"
+> #set pl_max_iter_eco        "10 20 300 40 3  100 100 1"
+> ##et pl_eco_slack_crit      "99999. 1.00  0.10 8 0.03 35 0.01 170"
+> 
+> ##et pl_priority_compare  "2 2 2 3"
+> #set pl_priority_result   "2 1 1 0"
+> #set pl_priority_pass     "2 1 1 0"
+> #set pl_swap_cost_margin       "200.0  0.0  200.0  0.0  200.0  0.0   0.00  0.0"
+>  set pl_swap_wirelength_margin "200.0  0.0  200.0  0.0  200.0  0.0   020.0 -0.3  2000. 1.50"
+>  set pl_swap_congestion_margin "100.0  0.0  100.0  0.0  100.0  0.0   010.0 -0.3  1000. 1.25"
+> #set pl_criticality_beta "1.0 3.0 1.0  1.0 3.0 1.0  1.0 3.0 1.0  99999 3.0 3.0"
+> 
+>  set rt_retiming_idx         5
+>  set rt_converge_accelerator "3 1 0 0"
+> #set rt_pres_cost_ratio      "1.00 1.50  2.00 2.50"
+>  set rt_dly_ratio            "0.55 0.35 0.30  0.50 0.50 0.30"
+>  set rt_reroute_max_iter     "6  4 5  7 9  12"
+>  set rt_reroute_start_iter   "0  0 1  2 4  0 "
+>  set rt_quick_converge_ratio 0.00
+> if { [info exists FITTER] } {
+  if { $FITTER == "Auto" } {
+    if { $MODE == "QUARTUS" } { set FITTER hybrid; } else { set FITTER full; }
+  }
+  if { $MODE == "SYNPLICITY" || $MODE == "NATIVE" } { set FITTER full; }
+  set_mode -fitter $FITTER
+}
+>  set pl_reuse_existing_placement true
+>  set pl_fix_bram_cells 0
+>  set pl_fix_mult_cells 0
+> if { [info exists EFFORT] } { set_mode -effort $EFFORT; }
+> #set pl_neighbor_swap_range "2  6  6  3 "
+>  set pl_pass_result "1 1 1 1"
+>  set pl_max_pass    "2 1 1 1 1"
+>  set pl_max_iter       10
+>  set pl_max_iter_part  20
+>  set pl_max_iter_final 20
+>  set pl_max_iter_legal 10
+>  set pl_max_iter_touch 00
+> #set pl_neighbor_swap_range "2  6  6  3 "
+> #set pl_spread_swap_max_iter "3 5  5 4"
+> #set pl_use_initial_place_once 0
+>  set rt_min_converge "7"
+>  set rt_optimize_max "3"
+> if { [info exists SKEW  ] } { set_mode -skew   $SKEW  ; }
+>  set pl_useful_skew_level -1
+>  set rt_useful_skew_level 0
+>  set rt_useful_skew_bram         true
+>  set rt_useful_skew_io           false
+>  set rt_useful_skew_io_ireg      false
+>  set rt_useful_skew_io_oreg      false
+>  set rt_useful_skew_output_io    false
+>  set rt_useful_skew_input_io     false
+>  set rt_useful_skew_unconstraint "false false"
+>  set rt_useful_skew_max                "0 100"
+>  set rt_skew_crit_minmax               "0.00 1.00"
+> #set rt_useful_skew_setup_slac_margin  "1.00 1.00  1.00 1.00  1.00 0.10 0.50 0.10 0.70 0.10  1.00"
+> #set rt_useful_skew_hold_slack_margin  "0.10 0.10  0.30 0.30  0.30 0.30"
+> #set rt_useful_skew_hold_slack_ratio   "0.05 0.05  0.10 0.10  0.10 0.10"
+> if { [info exists SKOPE ] } { set_mode -skope  $SKOPE ; }
+> if { [info exists HOLDX ] } { set_mode -holdx  $HOLDX; }
+> # Minimal logical slice hold fix, only by routing to bram/mult, no IO delay
+> 
+>  set ta_cross_clock_slack "2 0"
+> 
+> #set pl_max_iter_hold_fix "30 1 3"
+> #set pl_hold_slack_margin  0.2
+> #set pl_setup_slack_margin "0.5 -1000."
+> #set pl_net_hold_fix_target "alta_bram alta_bram9k alta_mult"
+> 
+>  set rt_hold_slack_margin  "0.2 0.2    0.2 0.2    0.2 0.7   -1000. 0.0"
+>  set rt_setup_slack_margin "0.5 -1000. 0.5 -1000. 0.0 -1000."
+> #set rt_net_hold_crit_minmax "0.5 0.5"
+>  set rt_net_hold_budget_method 0
+>  set rt_net_hold_fix_target "alta_bram alta_bram9k alta_mult"
+> 
+> #set pl_net_hold_fix_clock false
+> #set pl_net_hold_fix_auto  false
+> #set pl_net_hold_fix_io    false
+> #set rt_net_hold_fix_start false
+> #set rt_net_hold_fix_clock false
+> #set rt_net_hold_fix_auto  false
+> #set rt_net_hold_fix_io    false
+> if { [info exists TUNING] } { set_mode -tuning $TUNING; }
+> if { [info exists TARGET] } { set_mode -target $TARGET; }
+> if { [info exists PRESET] } { set_mode -preset $PRESET; }
+> if { [info exists ADJUST] } { set pl_criticality_wadjust $ADJUST; }
+> 
+> set alta_aqf $::alta_work/alta.aqf
+> if { $LOAD_DB } {
+  # Empty
+} elseif { true } {
+  if { [file exists $VE_FILE] } {
+    set ORIGINAL_PIN ""
+  } elseif { ! [file exists $ORIGINAL_PIN] } {
+    if { $is_migrated } {
+      error "Can not find design PIN file $ORIGINAL_PIN, please compile design first"
+    }
+    set ORIGINAL_PIN ""
+  }
+  if { [file exists $ORIGINAL_QSF] } {
+    alta::convert_quartus_settings_cmd $ORIGINAL_QSF $ORIGINAL_PIN $alta_aqf
+  } elseif { $is_migrated } {
+    error "Can not find design exported QSF file $ORIGINAL_QSF, please export assigments first"
+  }
+}
+> if { [file exists "$alta_aqf"] } {
+  alta::tcl_highlight "Using AQF file $alta_aqf.\n"
+  source "$alta_aqf"
+}
+Using AQF file ./alta_db/alta.aqf.
+> set_global_assignment -name CYCLONEII_RESERVE_NCEO_AFTER_CONFIGURATION "USE AS REGULAR IO"
+> set_global_assignment -name RESERVE_DATA0_AFTER_CONFIGURATION "USE AS REGULAR IO"
+> set_global_assignment -name RESERVE_DATA1_AFTER_CONFIGURATION "USE AS REGULAR IO"
+> set_global_assignment -name RESERVE_FLASH_NCE_AFTER_CONFIGURATION "USE AS REGULAR IO"
+> set_global_assignment -name RESERVE_DCLK_AFTER_CONFIGURATION "USE AS REGULAR IO"
+> set_instance_assignment -name IO_STANDARD "2.5 V" -to clk
+> set_instance_assignment -name IO_STANDARD "2.5 V" -to led
+> set_instance_assignment -name IO_STANDARD "2.5 V" -to rst_n
+> if { [file exists "./${DESIGN}.asf"] } {
+  alta::tcl_highlight "Using ASF file ${DESIGN}.asf.\n"
+  source "./${DESIGN}.asf"
+}
+Using ASF file top.asf.
+> 
+> if { $FLOW == "PROBE" } {
+  set ret [place_pseudo -user_io -place_io -place_pll -place_gclk]
+  if { !$ret } { exit -1 }
+
+  set force ""
+  if { [info exists PROBE_FORCE] && $PROBE_FORCE } { set force "-force" }
+  eval "probe_design -froms {${PROBE_FROMS}} -tos {${PROBE_TOS}} ${force}"
+
+} elseif { $FLOW == "CHECK" } {
+  set ret [place_pseudo -user_io -place_io -place_pll -place_gclk]
+  if { !$ret } { exit -1 }
+
+  if { [file exists "./${DESIGN}.chk"] } {
+    alta::tcl_highlight "Using CHK file ${DESIGN}.chk.\n"
+    source "./${DESIGN}.chk"
+    place_design -dry
+    check_design -rule led_guide
+  } else {
+    error "Can not find design CHECK file ${DESIGN}.chk"
+  }
+
+} else {
+  set ret [place_pseudo -user_io -place_io -place_pll -place_gclk -warn_io]
+  if { !$ret } { exit -1 }
+
+  set org_place ""
+  set load_place ""
+  set load_route ""
+  set quiet ""
+  if {  $ORG_PLACE } { set  org_place "-org_place" ; }
+  if { $LOAD_PLACE } { set load_place "-load_place"; }
+  if { $LOAD_ROUTE } { set load_route "-load_route"; }
+  eval "place_and_route_design $org_place $load_place $load_route \
+                               -retry $RETRY $seed_rand $quiet"
+}
+Info: pwm_rgb_m0|pwm_clk_cnt[10]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[11]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[12]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[13]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[14]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[15]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[16]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[17]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[1]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[2]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[3]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[4]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[5]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[6]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[7]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[8]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[9]|Q is identified as a clock gate signal.
+Warn: Auto constraint INTERNAL: create_clock -name Internal_generated_clock_top|clk -period 1000.000 clk.
+Warn: Auto constraint INTERNAL: create_generated_clock -name Internal_generated_clock_pwm_rgb_m0|pwm_clk_cnt[0]|Q -divide_by 2 -add -source clk -master_clock Internal_generated_clock_top|clk pwm_rgb_m0|pwm_clk_cnt[0]|Q.
+Placement Statistics
+ Total  Logic    Counts  : 409/11120 (3.7%)
+ Total  Logic    Tiles   : 29
+ Total  Valid    Nets    : 393 (243+150)
+ Total  Valid    Fanouts : 1478 (981+497)
+ Total  Tile     Fanouts : 372
+ Tile   Zip      Fanins  : 10 (0:23)
+ Tile   Zip      Fanouts : 20 (0:99)
+ Total  Ignored  Nets    : 216
+ Total  Valid    Blocks  : 29 (26/3)
+ Total  Ignored  Blocks  : 0
+ Total  Zip Complexities : 87/590 2.73/237.75
+ Avg    Zip   Bottleneck : 3.34 16.24
+ Avg    Net   Bottleneck : 16.76 433.24
+Iter #1/1 ...
+Pass 1 #1/2 ...
+Partitioning...
+ step = 4, partition : 2,2
+....................
+ step = 5, partition : 2,2
+....................
+
+## CPU time: 0:0:0, REAL time: 0:0:0
+Pass 1 #2/2 ...
+Partitioning...
+ step = 4, partition : 2,2
+....................
+ step = 5, partition : 2,2
+....................
+
+## CPU time: 0:0:0, REAL time: 0:0:1
+Pass 2 #1/1 ...
+Legalization and Swapping...
+..........
+
+## CPU time: 0:0:0, REAL time: 0:0:1
+Pass 3 #1/1 ...
+Touchup...
+
+
+## CPU time: 0:0:0, REAL time: 0:0:0
+Pass 4 #1/1 ...
+Optimization...
+............................................................
+Finishing...
+
+## CPU time: 0:0:0, REAL time: 0:0:0
+Total wire cost after placement: 0:0:0(0:0) 777.549(163.707)+1525(0)+276.667 487.923(68.0286)+-280.75
+
+*** Post Placement Timing Report ***
+=== User constraints ===
+
+
+=== Auto constraints ===
+Fmax report
+  User constraint:   0.500MHz, Fmax: 234.412MHz, Clock: Internal_generated_clock_pwm_rgb_m0|pwm_clk_cnt[0]|Q
+  User constraint:   1.000MHz, Fmax: 191.424MHz, Clock: Internal_generated_clock_top|clk
+
+Clock transfer report:
+  Worst setup: 1995.734, with clock Internal_generated_clock_pwm_rgb_m0|pwm_clk_cnt[0]|Q
+  Worst setup: 994.776, with clock Internal_generated_clock_top|clk
+  Worst setup: 997.130, from clock Internal_generated_clock_pwm_rgb_m0|pwm_clk_cnt[0]|Q to Internal_generated_clock_top|clk
+
+  Worst  hold:   0.550, with clock Internal_generated_clock_pwm_rgb_m0|pwm_clk_cnt[0]|Q
+  Worst  hold:   0.990, with clock Internal_generated_clock_top|clk
+  Worst  hold:   1.227, from clock Internal_generated_clock_pwm_rgb_m0|pwm_clk_cnt[0]|Q to Internal_generated_clock_top|clk
+
+Coverage report
+  User constraints covered 0 connections out of 1171 total, coverage: 0.0%
+  Auto constraints covered 244 connections out of 1171 total, coverage: 20.8%
+
+
+Hold from pwm_rgb_m0|state.001 to pwm_rgb_m0|state.001, clock Internal_generated_clock_pwm_rgb_m0|pwm_clk_cnt[0]|Q, constraint 0.000
+  Slack:   0.550
+    Arrival Time:  1010.802
+    Required Time: 1010.252
+
+*** End Timing Report ***
+
+route_design -dump ./alta_db/route.tx -replace ./alta_db/replace.tx 
+Route Design Statistics
+ Total Routing Nets : 393
+ Fanout     Average : 2.76 (1..20)
+ Max   Fanout  Net  : pwm_ctr_m0|Div1|auto_generated|divider|divider|add_sub_15_result_int[8]~12_combout
+ Logic       Slices : 408/16624 (2.5%)
+
+Routing...
+ Budget Useful Skew...
+=== User constraints ===
+=== Auto constraints ===
+Fmax report
+  User constraint:   0.500MHz, Fmax: 234.412MHz, Clock: Internal_generated_clock_pwm_rgb_m0|pwm_clk_cnt[0]|Q
+  User constraint:   1.000MHz, Fmax: 191.424MHz, Clock: Internal_generated_clock_top|clk
+
+## CPU time: 0:0:0, REAL time: 0:0:0
+ iter = 1/1, route#: 393, violation# : 126, overflow# : 120, conflict# : 163, node#: 1964
+## CPU time: 0:0:0, REAL time: 0:0:0
+ iter = 2/2, route#: 393, violation# : 79, overflow# : 78, conflict# : 106, node#: 2059
+## CPU time: 0:0:0, REAL time: 0:0:0
+ iter = 3/3, route#: 393, violation# : 34, overflow# : 34, conflict# : 51, node#: 2129
+## CPU time: 0:0:0, REAL time: 0:0:0
+ iter = 4/4, route#: 393, violation# : 3, overflow# : 3, conflict# : 5, node#: 2170
+## CPU time: 0:0:0, REAL time: 0:0:1
+ iter = 5/5, route#: 393, violation# : 0, overflow# : 0, conflict# : 0, node#: 2178
+Optimizing...
+...
+
+Done
+
+*** Post Routing Timing Report ***
+=== User constraints ===
+
+
+=== Auto constraints ===
+Fmax report
+  User constraint:   0.500MHz, Fmax: 231.589MHz, Clock: Internal_generated_clock_pwm_rgb_m0|pwm_clk_cnt[0]|Q
+  User constraint:   1.000MHz, Fmax: 187.795MHz, Clock: Internal_generated_clock_top|clk
+
+Clock transfer report:
+  Worst setup: 1995.682, with clock Internal_generated_clock_pwm_rgb_m0|pwm_clk_cnt[0]|Q
+  Worst setup: 994.675, with clock Internal_generated_clock_top|clk
+  Worst setup: 997.450, from clock Internal_generated_clock_pwm_rgb_m0|pwm_clk_cnt[0]|Q to Internal_generated_clock_top|clk
+
+  Worst  hold:   0.550, with clock Internal_generated_clock_pwm_rgb_m0|pwm_clk_cnt[0]|Q
+  Worst  hold:   0.990, with clock Internal_generated_clock_top|clk
+  Worst  hold:   0.999, from clock Internal_generated_clock_pwm_rgb_m0|pwm_clk_cnt[0]|Q to Internal_generated_clock_top|clk
+
+Coverage report
+  User constraints covered 0 connections out of 1171 total, coverage: 0.0%
+  Auto constraints covered 244 connections out of 1171 total, coverage: 20.8%
+
+
+Hold from pwm_rgb_m0|state.001 to pwm_rgb_m0|state.001, clock Internal_generated_clock_pwm_rgb_m0|pwm_clk_cnt[0]|Q, constraint 0.000
+  Slack:   0.550
+    Arrival Time:  1010.634
+    Required Time: 1010.084
+
+*** End Timing Report ***
+
+> 
+> date_time
+Tue May 23 16:58:48 2023
+> if { $FLOW != "CHECK" } {
+if { $FLOW != "PROBE" } {
+#report_timing -verbose 1 -file $::alta_work/timing.rpt.gz
+report_timing -verbose 2 -setup -file $::alta_work/setup.rpt.gz
+report_timing -verbose 2 -setup -brief -file $::alta_work/setup_summary.rpt.gz
+report_timing -verbose 2 -hold -file $::alta_work/hold.rpt.gz
+report_timing -verbose 2 -hold -brief -file $::alta_work/hold_summary.rpt.gz
+
+set ta_report_auto_constraints 0
+report_timing -fmax -file $::alta_work/fmax.rpt
+report_timing -xfer -file $::alta_work/xfer.rpt
+set ta_report_auto_constraints $ta_report_auto
+
+#set ta_coverage_limit "0.95 0.90"
+set ta_dump_uncovered 1
+report_timing -verbose 1 -coverage >! $::alta_work/coverage.rpt.gz
+#unset ta_coverage_limit
+unset ta_dump_uncovered
+
+
+if { ! [info exists rt_report_timing_fast] } {
+  set rt_report_timing_fast false
+}
+if { $rt_report_timing_fast } {
+  set_timing_corner fast
+  route_delay -quiet
+  report_timing -verbose 2 -setup -file $::alta_work/setup_fast.rpt.gz
+  report_timing -verbose 2 -setup -brief -file $::alta_work/setup_fast_summary.rpt.gz
+  report_timing -verbose 2 -hold -file $::alta_work/hold_fast.rpt.gz
+  report_timing -verbose 2 -hold -brief -file $::alta_work/hold_fast_summary.rpt.gz
+  set ta_report_auto_constraints 0
+  report_timing -fmax -file $::alta_work/fmax_fast.rpt
+  report_timing -xfer -file $::alta_work/xfer_fast.rpt
+  set ta_report_auto_constraints $ta_report_auto
+}
+
+write_routed_design "${RESULT_DIR}/${RESULT}_routed.v"
+}
+
+bitgen normal -prg "${RESULT_DIR}/${RESULT}.prg" -bin "${RESULT_DIR}/${RESULT}.bin"
+bitgen sram -prg "${RESULT_DIR}/${RESULT}_sram.prg"
+bitgen download -bin "${RESULT_DIR}/${RESULT}.bin" -svf "${RESULT_DIR}/${RESULT}_download.svf"
+generate_binary -slave "${RESULT_DIR}/${RESULT}_slave.rbf" \
+                -inputs "${RESULT_DIR}/${RESULT}.bin" -reverse
+generate_binary -master "${RESULT_DIR}/${RESULT}_master.bin" \
+                -inputs "${RESULT_DIR}/${RESULT}.bin"
+generate_programming_file "${RESULT_DIR}/${RESULT}_master.bin" -prg "${RESULT_DIR}/${RESULT}_master.prg" \
+  -as "${RESULT_DIR}/${RESULT}_master_as.prg" -hybrid "${RESULT_DIR}/${RESULT}_hybrid.prg"
+}
+Warn: User constraints coverage is too low at 0.0%.
+> 
+> if { [file exists "./${DESIGN}.post.asf"] } {
+  alta::tcl_highlight "Using post-ASF file ${DESIGN}.post.asf.\n"
+  source "./${DESIGN}.post.asf"
+}
+Using post-ASF file top.post.asf.
+> date_time
+Tue May 23 16:58:52 2023
+> exit
+
+Total 0 fatals, 0 errors, 3 warnings, 19 infos.

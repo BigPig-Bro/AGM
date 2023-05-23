@@ -1,0 +1,24 @@
+Info: Found GCLK net rtl~0clkctrl_outclk (2).
+Info: Found GCLK net clk~inputclkctrl_outclk (4).
+Info: pwm_rgb_m0|pwm_clk_cnt[10]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[11]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[12]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[13]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[14]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[15]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[16]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[17]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[1]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[2]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[3]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[4]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[5]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[6]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[7]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[8]|Q is identified as a clock gate signal.
+Info: pwm_rgb_m0|pwm_clk_cnt[9]|Q is identified as a clock gate signal.
+Warn: Auto constraint INTERNAL: create_clock -name Internal_generated_clock_top|clk -period 1000.000 clk.
+Warn: Auto constraint INTERNAL: create_generated_clock -name Internal_generated_clock_pwm_rgb_m0|pwm_clk_cnt[0]|Q -divide_by 2 -add -source clk -master_clock Internal_generated_clock_top|clk pwm_rgb_m0|pwm_clk_cnt[0]|Q.
+Warn: User constraints coverage is too low at 0.0%.
+
+Total 0 fatals, 0 errors, 3 warnings, 19 infos.
