@@ -1,0 +1,146 @@
+`timescale 1 ps/ 1 ps
+
+module top(
+	clk,
+	key,
+	led);
+input	clk;
+input	key;
+output	led;
+
+// module hard_block
+// Design Ports Information
+// ~ALTERA_ASDO_DATA1~	=>  Location: PIN_6,	 I/O Standard: 2.5 V,	 Current Strength: Default
+// ~ALTERA_FLASH_nCE_nCSO~	=>  Location: PIN_8,	 I/O Standard: 2.5 V,	 Current Strength: Default
+// ~ALTERA_DCLK~	=>  Location: PIN_12,	 I/O Standard: 2.5 V,	 Current Strength: Default
+// ~ALTERA_DATA0~	=>  Location: PIN_13,	 I/O Standard: 2.5 V,	 Current Strength: Default
+// ~ALTERA_nCEO~	=>  Location: PIN_101,	 I/O Standard: 2.5 V,	 Current Strength: 8mA
+
+// module top
+// Design Ports Information
+// led	=>  Location: PIN_7,	 I/O Standard: 2.5 V,	 Current Strength: Default
+// key	=>  Location: PIN_91,	 I/O Standard: 2.5 V,	 Current Strength: Default
+// clk	=>  Location: PIN_25,	 I/O Standard: 2.5 V,	 Current Strength: Default
+
+//wire	gnd;
+//wire	gnd;
+//wire	vcc;
+//wire	vcc;
+wire	\clk~input_o ;
+//wire	devclrn;
+tri1	devclrn;
+tri1	devoe;
+//wire	devoe;
+//wire	devpor;
+tri1	devpor;
+wire	\key~input_o ;
+//wire	\led~output_o ;
+wire	\led~reg0_q ;
+wire	\led~reg0feeder_combout ;
+wire	unknown;
+wire	unknown;
+wire	\~ALTERA_ASDO_DATA1~~ibuf_o ;
+wire	\~ALTERA_ASDO_DATA1~~padout ;
+wire	\~ALTERA_DATA0~~ibuf_o ;
+wire	\~ALTERA_DATA0~~padout ;
+wire	\~ALTERA_FLASH_nCE_nCSO~~ibuf_o ;
+wire	\~ALTERA_FLASH_nCE_nCSO~~padout ;
+
+wire vcc;
+wire gnd;
+assign vcc = 1'b1;
+assign gnd = 1'b0;
+
+// Location: IOIBUF_X0_Y11_N3
+// alta_io_ibuf \clk~input (
+alta_dio \clk~input (
+	.datain(gnd),
+	.datainh(gnd),
+	.oe(gnd),
+	.outclk(gnd),
+	.outclkena(vcc),
+	.inclk(gnd),
+	.inclkena(vcc),
+	.areset(gnd),
+	.sreset(gnd),
+	.combout(\clk~input_o ),
+	.regout(),
+	.padio(clk));
+defparam \clk~input .CFG_KEEP = 2'b00;
+// defparam \clk~input .simulate_z_as = "z";
+
+// Location: IOOBUF_X0_Y21_N1
+// alta_io_obuf \led~output (
+alta_dio \led~output (
+	.datain(\led~reg0_q ),
+	.datainh(gnd),
+	.oe(vcc),
+	.outclk(gnd),
+	.outclkena(vcc),
+	.inclk(gnd),
+	.inclkena(vcc),
+	.areset(gnd),
+	.sreset(gnd),
+	.combout(),
+	.regout(),
+	.padio(led));
+defparam \led~output .CFG_KEEP = 2'b00;
+// defparam \led~output .open_drain_output = "false";
+
+// Location: IOIBUF_X34_Y12_N0
+// alta_io_ibuf \key~input (
+alta_dio \key~input (
+	.datain(gnd),
+	.datainh(gnd),
+	.oe(gnd),
+	.outclk(gnd),
+	.outclkena(vcc),
+	.inclk(gnd),
+	.inclkena(vcc),
+	.areset(gnd),
+	.sreset(gnd),
+	.combout(\key~input_o ),
+	.regout(),
+	.padio(key));
+defparam \key~input .CFG_KEEP = 2'b00;
+// defparam \key~input .simulate_z_as = "z";
+
+// Location: FF_X1_Y11_N0
+// alta_lcell_ff \led~reg0 (
+// Location: LCCOMB_X1_Y11_N0
+// alta_lcell_comb \led~reg0feeder (
+alta_slice \led~reg0 (
+	.A(vcc),
+	.B(vcc),
+	.C(vcc),
+	.D(\key~input_o ),
+	.Cin(),
+	.Qin(\led~reg0_q ),
+	.Clk(\clk~input_o_X1_Y11_SIG_VCC ),
+	.AsyncReset(AsyncReset_X1_Y11_GND),
+	.SyncReset(),
+	.ShiftData(),
+	.SyncLoad(),
+	.LutOut(\led~reg0feeder_combout ),
+	.Cout(),
+	.Q(\led~reg0_q ));
+defparam \led~reg0 .mask = 16'hFF00;
+defparam \led~reg0 .mode = "logic";
+defparam \led~reg0 .modeMux = 1'b0;
+defparam \led~reg0 .FeedbackMux = 1'b0;
+defparam \led~reg0 .ShiftMux = 1'b0;
+defparam \led~reg0 .BypassEn = 1'b0;
+defparam \led~reg0 .CarryEnb = 1'b1;
+defparam \led~reg0 .AsyncResetMux = 2'b00;
+defparam \led~reg0 .SyncResetMux = 2'bxx;
+defparam \led~reg0 .SyncLoadMux = 2'bxx;
+
+// Location: CLKENCTRL_X1_Y11_N0
+alta_clkenctrl clken_ctrl_X1_Y11_N0(.ClkIn(\clk~input_o ), .ClkEn(), .ClkOut(\clk~input_o_X1_Y11_SIG_VCC ));
+defparam clken_ctrl_X1_Y11_N0.ClkMux = 2'b10;
+defparam clken_ctrl_X1_Y11_N0.ClkEnMux = 2'b01;
+
+// Location: ASYNCCTRL_X1_Y11_N0
+alta_asyncctrl asyncreset_ctrl_X1_Y11_N0(.Din(), .Dout(AsyncReset_X1_Y11_GND));
+defparam asyncreset_ctrl_X1_Y11_N0.AsyncCtrlMux = 2'b00;
+endmodule

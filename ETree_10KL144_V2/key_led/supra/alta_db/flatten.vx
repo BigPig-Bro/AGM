@@ -1,0 +1,110 @@
+`timescale 1 ps/ 1 ps
+
+module top(
+	clk,
+	key,
+	led);
+input	clk;
+input	key;
+output	led;
+
+// module hard_block
+// Design Ports Information
+// ~ALTERA_ASDO_DATA1~	=>  Location: PIN_6,	 I/O Standard: 2.5 V,	 Current Strength: Default
+// ~ALTERA_FLASH_nCE_nCSO~	=>  Location: PIN_8,	 I/O Standard: 2.5 V,	 Current Strength: Default
+// ~ALTERA_DCLK~	=>  Location: PIN_12,	 I/O Standard: 2.5 V,	 Current Strength: Default
+// ~ALTERA_DATA0~	=>  Location: PIN_13,	 I/O Standard: 2.5 V,	 Current Strength: Default
+// ~ALTERA_nCEO~	=>  Location: PIN_101,	 I/O Standard: 2.5 V,	 Current Strength: 8mA
+
+// module top
+// Design Ports Information
+// led	=>  Location: PIN_7,	 I/O Standard: 2.5 V,	 Current Strength: Default
+// key	=>  Location: PIN_91,	 I/O Standard: 2.5 V,	 Current Strength: Default
+// clk	=>  Location: PIN_25,	 I/O Standard: 2.5 V,	 Current Strength: Default
+
+//wire	gnd;
+//wire	gnd;
+//wire	vcc;
+//wire	vcc;
+wire	\clk~input_o ;
+//wire	devclrn;
+tri1	devclrn;
+tri1	devoe;
+//wire	devoe;
+//wire	devpor;
+tri1	devpor;
+wire	\key~input_o ;
+//wire	\led~output_o ;
+wire	\led~reg0_q ;
+wire	\led~reg0feeder_combout ;
+wire	unknown;
+wire	unknown;
+wire	\~ALTERA_ASDO_DATA1~~ibuf_o ;
+wire	\~ALTERA_ASDO_DATA1~~padout ;
+wire	\~ALTERA_DATA0~~ibuf_o ;
+wire	\~ALTERA_DATA0~~padout ;
+wire	\~ALTERA_FLASH_nCE_nCSO~~ibuf_o ;
+wire	\~ALTERA_FLASH_nCE_nCSO~~padout ;
+
+wire vcc;
+wire gnd;
+assign vcc = 1'b1;
+assign gnd = 1'b0;
+
+// Location: IOIBUF_X0_Y11_N22
+cycloneive_io_ibuf \clk~input (
+	.i(clk),
+	.ibar(gnd),
+	.o(\clk~input_o ));
+defparam \clk~input .bus_hold = "false";
+defparam \clk~input .simulate_z_as = "z";
+
+// Location: IOIBUF_X34_Y12_N1
+cycloneive_io_ibuf \key~input (
+	.i(key),
+	.ibar(gnd),
+	.o(\key~input_o ));
+defparam \key~input .bus_hold = "false";
+defparam \key~input .simulate_z_as = "z";
+
+// Location: IOOBUF_X0_Y21_N9
+cycloneive_io_obuf \led~output (
+	.i(\led~reg0_q ),
+	.oe(vcc),
+	.seriesterminationcontrol({gnd, gnd, gnd, gnd, gnd, gnd, gnd, gnd, gnd, gnd, gnd, gnd, gnd, gnd, gnd, gnd}),
+	.devoe(devoe),
+	.o(led),
+	.obar());
+defparam \led~output .bus_hold = "false";
+defparam \led~output .open_drain_output = "false";
+
+// Location: FF_X1_Y11_N1
+dffeas \led~reg0 (
+	.clk(\clk~input_o ),
+	.d(\led~reg0feeder_combout ),
+	.asdata(vcc),
+	.clrn(vcc),
+	.aload(gnd),
+	.sclr(gnd),
+	.sload(gnd),
+	.ena(vcc),
+	.devclrn(devclrn),
+	.devpor(devpor),
+	.q(\led~reg0_q ),
+	.prn(vcc));
+defparam \led~reg0 .is_wysiwyg = "true";
+defparam \led~reg0 .power_up = "low";
+
+// Location: LCCOMB_X1_Y11_N0
+cycloneive_lcell_comb \led~reg0feeder (
+	.dataa(gnd),
+	.datab(gnd),
+	.datac(gnd),
+	.datad(\key~input_o ),
+	.cin(gnd),
+	.combout(\led~reg0feeder_combout ),
+	.cout());
+defparam \led~reg0feeder .lut_mask = 16'hFF00;
+defparam \led~reg0feeder .sum_lutc_input = "datac";
+
+endmodule

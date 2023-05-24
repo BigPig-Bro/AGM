@@ -1,0 +1,14 @@
+vendor_name = ModelSim
+source_file = 1, E:/FPGA_work/AGM/ETree_10KL144_V2/key_led/src/top.sv
+source_file = 1, E:/FPGA_work/AGM/ETree_10KL144_V2/key_led/supra/af_quartus.tcl
+source_file = 1, E:/FPGA_work/AGM/ETree_10KL144_V2/key_led/db/top.cbx.xml
+design_name = top
+instance = comp, \led~output , led~output, top, 1
+instance = comp, \clk~input , clk~input, top, 1
+instance = comp, \key~input , key~input, top, 1
+instance = comp, \led~reg0feeder , led~reg0feeder, top, 1
+instance = comp, \led~reg0 , led~reg0, top, 1
+design_name = hard_block
+instance = comp, \~ALTERA_ASDO_DATA1~~ibuf , ~ALTERA_ASDO_DATA1~~ibuf, hard_block, 1
+instance = comp, \~ALTERA_FLASH_nCE_nCSO~~ibuf , ~ALTERA_FLASH_nCE_nCSO~~ibuf, hard_block, 1
+instance = comp, \~ALTERA_DATA0~~ibuf , ~ALTERA_DATA0~~ibuf, hard_block, 1
