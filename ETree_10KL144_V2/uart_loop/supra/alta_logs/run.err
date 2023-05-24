@@ -1,0 +1,5 @@
+Info: Found GCLK net clk~inputclkctrl_outclk (20).
+Warn: Auto constraint INTERNAL: create_clock -name Internal_generated_clock_uart_top|clk -period 1000.000 clk.
+Warn: User constraints coverage is too low at 0.0%.
+
+Total 0 fatals, 0 errors, 2 warnings, 1 infos.

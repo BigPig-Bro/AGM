@@ -1,0 +1,3 @@
+set_instance_assignment -name IO_STANDARD "2.5 V" -to clk
+set_instance_assignment -name IO_STANDARD "2.5 V" -to uart_rx
+set_instance_assignment -name IO_STANDARD "2.5 V" -to uart_tx

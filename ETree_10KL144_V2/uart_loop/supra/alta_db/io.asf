@@ -1,0 +1,6 @@
+set_location_assignment -to clk PIN_25
+set_location_assignment -to uart_rx PIN_86
+set_location_assignment -to uart_tx PIN_87
+set_instance_assignment -name IO_STANDARD -to clk "2.5 V"
+set_instance_assignment -name IO_STANDARD -to uart_rx "2.5 V"
+set_instance_assignment -name IO_STANDARD -to uart_tx "2.5 V"

@@ -1,0 +1,6 @@
+Info: Top level entity name uart_top is different from design name top.
+Warn: Can not find ASF file ./top.asf, create a empty one.
+Info: Can not find ASF file ./top.pre.asf, create a empty one.
+Info: Can not find ASF file ./top.post.asf, create a empty one.
+
+Total 0 fatals, 0 errors, 1 warnings, 3 infos.
